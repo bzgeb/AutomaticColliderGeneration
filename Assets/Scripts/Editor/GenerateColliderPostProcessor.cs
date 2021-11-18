@@ -4,25 +4,26 @@ using UnityEngine;
 
 public class GenerateColliderPostProcessor : AssetPostprocessor
 {
-    [MenuItem("Assets/Add Mesh")]
-    static void AddMesh()
+    [MenuItem("Tools/Better Collider Generation")]
+    static void ToggleColliderGeneration()
     {
-        var assetsModelsNewmeshAsset = "Assets/Models/NewMesh.asset";
-        AssetDatabase.CreateAsset(new Mesh() {name = "New Mesh"}, assetsModelsNewmeshAsset);
-        AssetDatabase.AddObjectToAsset(new Mesh() {name = "Another New Mesh"}, assetsModelsNewmeshAsset);
-        AssetDatabase.ImportAsset(assetsModelsNewmeshAsset);
+        var betterColliderGenerationEnabled = EditorPrefs.GetBool("BetterColliderGeneration", false);
+        EditorPrefs.SetBool("BetterColliderGeneration", !betterColliderGenerationEnabled);
     }
 
-    [MenuItem("Assets/Add Mesh To Selection")]
-    static void AddMeshToSelection()
+    [MenuItem("Tools/Better Collider Generation", true)]
+    static bool ValidateToggleColliderGeneration()
     {
-        var activeObject = Selection.activeObject;
-        AssetDatabase.AddObjectToAsset(new Mesh() {name = "Another New Mesh"}, activeObject);
-        AssetDatabase.ImportAsset(AssetDatabase.GetAssetPath(activeObject));
+        var betterColliderGenerationEnabled = EditorPrefs.GetBool("BetterColliderGeneration", false);
+        Menu.SetChecked("Tools/Better Collider Generation", betterColliderGenerationEnabled);
+        return true;
     }
 
     void OnPostprocessModel(GameObject g)
     {
+        if (!EditorPrefs.GetBool("BetterColliderGeneration", false))
+            return;
+
         List<Transform> transformsToDestroy = new List<Transform>();
         //Skip the root
         foreach (Transform child in g.transform)
@@ -32,26 +33,28 @@ public class GenerateColliderPostProcessor : AssetPostprocessor
 
         for (int i = transformsToDestroy.Count - 1; i >= 0; --i)
         {
-            GameObject.DestroyImmediate(transformsToDestroy[i].gameObject);
+            if (transformsToDestroy[i] != null)
+                GameObject.DestroyImmediate(transformsToDestroy[i].gameObject);
         }
-
-        Debug.Log($"Path:{assetPath} Context:{context}");
-        // AssetDatabase.AddObjectToAsset(new Mesh() {name = "New Mesh"}, assetPath);
     }
 
-    // static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets,
-    //     string[] movedFromAssetPaths)
-    // {
-    //     foreach (var importedAsset in importedAssets)
-    //     {
-    //         var asset = AssetDatabase.LoadAssetAtPath<GameObject>(importedAsset);
-    //         Debug.Log($"Postprocess: {asset.name} at path {importedAsset}");
-    //         Mesh newMesh = new Mesh();
-    //         newMesh.name = "Test New Mesh";
-    //         // AssetDatabase.AddObjectToAsset(newMesh, importedAsset);
-    //         // AssetDatabase.AddObjectToAsset(newMesh, asset);
-    //     }
-    // }
+    bool DetectNamingConvention(Transform t, string convention)
+    {
+        bool result = false;
+        if (t.gameObject.TryGetComponent(out MeshFilter meshFilter))
+        {
+            var lowercaseMeshName = meshFilter.sharedMesh.name.ToLower();
+            result = lowercaseMeshName.StartsWith($"{convention}_");
+        }
+
+        if (!result)
+        {
+            var lowercaseName = t.name.ToLower();
+            result = lowercaseName.StartsWith($"{convention}_");
+        }
+
+        return result;
+    }
 
     void GenerateCollider(Transform t, List<Transform> transformsToDestroy)
     {
@@ -60,31 +63,29 @@ public class GenerateColliderPostProcessor : AssetPostprocessor
             GenerateCollider(child, transformsToDestroy);
         }
 
-        // Debug.Log(t.name);
-
-        if (t.name.ToLower().StartsWith("ubx_"))
+        if (DetectNamingConvention(t, "ubx"))
         {
             AddCollider<BoxCollider>(t);
             transformsToDestroy.Add(t);
         }
-        else if (t.name.ToLower().StartsWith("ucp_"))
+        else if (DetectNamingConvention(t, "ucp"))
         {
             AddCollider<CapsuleCollider>(t);
             transformsToDestroy.Add(t);
         }
-        else if (t.name.ToLower().StartsWith("usp_"))
+        else if (DetectNamingConvention(t, "usp"))
         {
             AddCollider<SphereCollider>(t);
             transformsToDestroy.Add(t);
         }
-        else if (t.name.ToLower().StartsWith("ucx_"))
+        else if (DetectNamingConvention(t, "ucx"))
         {
             TranslateSharedMesh(t.GetComponent<MeshFilter>());
             var collider = AddCollider<MeshCollider>(t);
             collider.convex = true;
             transformsToDestroy.Add(t);
         }
-        else if (t.name.ToLower().StartsWith("umc_"))
+        else if (DetectNamingConvention(t, "umc"))
         {
             TranslateSharedMesh(t.GetComponent<MeshFilter>());
             AddCollider<MeshCollider>(t);
