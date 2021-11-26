@@ -34,7 +34,9 @@ public class GenerateColliderPostProcessor : AssetPostprocessor
         for (int i = transformsToDestroy.Count - 1; i >= 0; --i)
         {
             if (transformsToDestroy[i] != null)
+            {
                 GameObject.DestroyImmediate(transformsToDestroy[i].gameObject);
+            }
         }
     }
 
@@ -80,20 +82,20 @@ public class GenerateColliderPostProcessor : AssetPostprocessor
         }
         else if (DetectNamingConvention(t, "ucx"))
         {
-            TranslateSharedMesh(t.GetComponent<MeshFilter>());
+            TransformSharedMesh(t.GetComponent<MeshFilter>());
             var collider = AddCollider<MeshCollider>(t);
             collider.convex = true;
             transformsToDestroy.Add(t);
         }
         else if (DetectNamingConvention(t, "umc"))
         {
-            TranslateSharedMesh(t.GetComponent<MeshFilter>());
+            TransformSharedMesh(t.GetComponent<MeshFilter>());
             AddCollider<MeshCollider>(t);
             transformsToDestroy.Add(t);
         }
     }
 
-    void TranslateSharedMesh(MeshFilter meshFilter)
+    void TransformSharedMesh(MeshFilter meshFilter)
     {
         if (meshFilter == null)
             return;
@@ -115,9 +117,9 @@ public class GenerateColliderPostProcessor : AssetPostprocessor
     {
         T collider = t.gameObject.AddComponent<T>();
         T parentCollider = t.parent.gameObject.AddComponent<T>();
-        parentCollider.name = t.name;
 
         EditorUtility.CopySerialized(collider, parentCollider);
+        
         SerializedObject parentColliderSo = new SerializedObject(parentCollider);
         var parentCenterProperty = parentColliderSo.FindProperty("m_Center");
         if (parentCenterProperty != null)
