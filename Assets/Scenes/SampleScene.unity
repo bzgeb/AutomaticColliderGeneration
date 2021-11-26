@@ -451,6 +451,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: SkinnedWorm
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: f28824c2c2de3b346a2aa79c1aee0bd9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: f28824c2c2de3b346a2aa79c1aee0bd9, type: 3}
 --- !u!1 &1785076062 stripped
